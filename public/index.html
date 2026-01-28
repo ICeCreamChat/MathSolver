@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content">
+
+    <meta name="theme-color" content="#050b14">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+
+    <title>MathSolver - AI 数学解题助手</title>
+    <meta name="description" content="上传数学题图片，AI 自动识别并给出详细解答">
+
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+        }
+    </style>
+
+    <link rel="stylesheet" href="style.css">
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
+
+    <!-- KaTeX -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+
+    <!-- Cropper.js -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/cropperjs@1.6.1/dist/cropper.min.css">
+
+    <script defer src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
+
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js"
+            }
+        }
+    </script>
+</head>
+
+<body>
+    <!-- 背景动画容器 -->
+    <div id="math-canvas-container"></div>
+
+    <div class="glass-wrapper">
+        <button id="mobile-menu-btn" class="icon-btn" aria-label="打开菜单">☰</button>
+
+        <div class="app-layout">
+            <!-- 侧边栏 -->
+            <aside class="sidebar" id="sidebar">
+                <div class="sidebar-header">
+                    <button id="new-chat-btn" class="new-chat-btn">
+                        <span>+</span> 新建对话
+                    </button>
+                </div>
+                <div class="history-list" id="history-list">
+                    <!-- 历史记录将动态生成 -->
+                </div>
+                <div class="sidebar-footer">
+                    <div class="model-badge" id="model-display">MathSolver 1.0</div>
+                </div>
+            </aside>
+
+            <!-- 主区域 -->
+            <main class="main-content">
+                <div class="header-bar">
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <span class="status-dot"></span> AI 数学助手 Online
+                    </div>
+
+                    <div class="glass-snowflake" id="theme-toggle" title="切换主题">
+                        <svg class="icon-svg icon-snow" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M12 3v18M3 12h18M5.6 5.6l12.8 12.8M5.6 18.4L18.4 5.6" />
+                            <path d="M16 3l-4 4-4-4M21 8l-4 4 4 4M16 21l-4-4-4 4M3 16l4-4-4-4" />
+                        </svg>
+
+                        <svg class="icon-svg icon-cream" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M7 12L12 22L17 12" />
+                            <path d="M9 16L15 16" />
+                            <path d="M10.5 19L13.5 19" />
+                            <path
+                                d="M7 12 C7 11, 8 10, 9.5 10 C11 10, 11 11, 12 11 C13 11, 13 10, 14.5 10 C16 10, 17 11, 17 12" />
+                            <path d="M14.5 10 C15.5 10, 16.5 8, 15 6 C13.5 4, 10.5 4, 9 6 C7.5 8, 8.5 10, 9.5 10" />
+                        </svg>
+                    </div>
+                </div>
+
+                <!-- 消息列表 -->
+                <div class="messages" id="messages">
+                    <!-- 欢迎消息会由 script.js 动态生成 -->
+                </div>
+
+                <!-- Loading 状态 -->
+                <div id="loading" class="loading" style="display: none;">
+                    <span>[MathSolver] AI 正在分析题目</span>
+                </div>
+
+                <!-- 输入区域 -->
+                <div class="input-area">
+                    <div class="input-container">
+                        <button id="upload-btn" class="icon-btn upload-btn" title="上传图片" aria-label="上传图片">📎</button>
+
+                        <div class="input-wrapper">
+                            <input id="chat-input" type="text" placeholder="输入追问或上传图片..." autocomplete="off"
+                                aria-label="输入框" />
+                            <div id="ghost-input"></div>
+                        </div>
+
+                        <button id="send-btn" class="icon-btn send-btn" title="发送" aria-label="发送消息">📤</button>
+                        <button id="camera-btn" class="icon-btn camera-btn" title="拍照" aria-label="拍照">📷</button>
+                    </div>
+
+                    <div class="toolbar">
+                        <button class="icon-btn more-btn" id="more-btn" aria-label="更多选项">⚙️</button>
+                        <div class="dropdown-content" id="dropdownMenu">
+                            <div class="dropdown-item" id="btn-tts"><span id="tts-label">🔇 朗读: 关</span></div>
+                            <div class="dropdown-item" id="btn-theme"><span>🌗 主题切换</span></div>
+                            <div class="dropdown-item" id="btn-clear" style="color:#ff5252"><span>🗑️ 清空对话</span></div>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <div id="sidebar-overlay" class="overlay"></div>
+
+    <!-- 裁剪模态框 -->
+    <div class="crop-modal" id="crop-modal">
+        <div class="crop-header">
+            <span class="crop-title">裁剪图片</span>
+            <button class="icon-btn" id="btn-crop-cancel">✕</button>
+        </div>
+        <div class="crop-container">
+            <img id="crop-image" src="">
+        </div>
+        <div class="crop-footer">
+            <button class="btn btn-secondary" id="btn-crop-reset">重置</button>
+            <button class="btn btn-primary" id="btn-crop-confirm">确认裁剪</button>
+        </div>
+    </div>
+
+    <!-- 隐藏的文件输入 -->
+    <input type="file" id="file-input" accept="image/*" style="display: none;">
+    <input type="file" id="camera-input" accept="image/*" capture="environment" style="display: none;">
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/cropperjs@1.6.1/dist/cropper.min.js"></script>
+    <script type="module" src="script.js?v=2"></script>
+</body>
+
+</html>
