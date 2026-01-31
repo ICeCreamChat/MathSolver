@@ -1,5 +1,9 @@
 /**
- * MathSolver - 双引擎 API 网关
+ * MathSolver
+ * Copyright (c) 2026 ICeCreamChat
+ * Licensed under the MIT License.
+ *
+ * Double Engine API Gateway
  * Refactored to Vercel Best Practices (Composition Pattern)
  */
 require('dotenv').config();

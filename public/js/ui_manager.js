@@ -1,5 +1,8 @@
 /**
- * UiManager Module
+ * MathSolver - UiManager Module
+ * Copyright (c) 2026 ICeCreamChat
+ * Licensed under the MIT License.
+ *
  * Handles Context Panel updates, Floating Window toggle, and shared UI interactions.
  */
 const UiManager = {

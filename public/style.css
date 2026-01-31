@@ -1,3 +1,8 @@
+/**
+ * MathSolver
+ * Copyright (c) 2026 ICeCreamChat
+ * Licensed under the MIT License.
+ */
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap');
 @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400&display=swap');
 
@@ -697,7 +702,8 @@ body.light-mode .sticky-problem-header {
 
 .katex {
     font-size: 1.0em !important;
-    font-family: 'Inter', sans-serif !important; /* Force sans-serif fallback */
+    font-family: 'Inter', sans-serif !important;
+    /* Force sans-serif fallback */
 }
 
 /* Ensure Chinese/Text inside equations uses App Font instead of Math Serif */

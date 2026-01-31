@@ -1,3 +1,7 @@
+:: MathSolver
+:: Copyright (c) 2026 ICeCreamChat
+:: Licensed under the MIT License.
+
 @echo off
 chcp 65001 >nul
 title MathSolver 服务器

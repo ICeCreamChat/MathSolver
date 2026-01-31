@@ -1,5 +1,8 @@
 /**
- * MathRenderer Module
+ * MathSolver - MathRenderer Module
+ * Copyright (c) 2026 ICeCreamChat
+ * Licensed under the MIT License.
+ *
  * Handles LaTeX rendering (KaTeX) and Markdown table formatting.
  * Vercel Web Expert Optimized
  */

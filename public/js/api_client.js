@@ -1,5 +1,8 @@
 /**
- * ApiClient Module
+ * MathSolver - ApiClient Module
+ * Copyright (c) 2026 ICeCreamChat
+ * Licensed under the MIT License.
+ *
  * Handles all server communication (DeepSeek, OCR, TTS).
  */
 const ApiClient = {

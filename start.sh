@@ -1,5 +1,9 @@
 #!/bin/bash
 
+# MathSolver
+# Copyright (c) 2026 ICeCreamChat
+# Licensed under the MIT License.
+
 # 切换到脚本所在目录（关键！）
 cd "$(dirname "$0")"
 

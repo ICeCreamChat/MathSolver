@@ -1,3 +1,8 @@
+/**
+ * MathSolver
+ * Copyright (c) 2026 ICeCreamChat
+ * Licensed under the MIT License.
+ */
 const fs = require('fs');
 const { CONFIG } = require('./config');
 const { parseWithMinerU, downloadAndExtractMineruImages } = require('./mineru');

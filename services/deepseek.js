@@ -1,3 +1,8 @@
+/**
+ * MathSolver
+ * Copyright (c) 2026 ICeCreamChat
+ * Licensed under the MIT License.
+ */
 const fetch = require('node-fetch');
 const { CONFIG, MOCK_DATA } = require('./config');
 
