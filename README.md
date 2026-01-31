@@ -1,6 +1,6 @@
 # MathSolver 📐
 
-AI 数学解题助手 - 三引擎智能架构
+AI 数学解题助手 - 三引擎智能架构 (Vercel Best Practices)
 
 ![Node.js](https://img.shields.io/badge/Node.js-18%2B-green)
 ![License](https://img.shields.io/badge/License-MIT-blue)
@@ -8,28 +8,33 @@ AI 数学解题助手 - 三引擎智能架构
 ## ✨ 功能特点
 
 - 📸 **图片识别** - 拍照上传数学题，自动识别题目内容
-- 🔍 **OCR 提取** - 高精度文字识别，支持数学公式
-- 📊 **图形检测** - 自动提取几何图形、函数图像
-- 🧠 **智能解答** - AI 分步骤详细讲解解题过程
-- 📱 **响应式设计** - 支持手机、平板、电脑
+- 🔍 **OCR 提取** - 高精度文字识别，支持复杂数学公式 (LaTeX)
+- 📊 **图形检测** - 自动提取几何图形、函数图像，支持裁剪和增强
+- 🧠 **智能解答** - AI 分步骤详细讲解解题过程，包含相关知识点
+- 💬 **对话追问** - 支持针对题目进行多轮对话追问
+- 📱 **响应式设计** - 极致 UI/UX，完美适配手机、平板、电脑，支持深色模式
+- ❄️ **模块化架构** - 前后端分离，服务层解耦，易于维护和扩展
 
 ## 🏗️ 技术架构
+
+本特定采用**双层架构**: Node.js 后端网关 + 模块化前端。
 
 ```
 ┌─────────────────────────────────────────────────────────┐
 │                      MathSolver                         │
 ├─────────────────────────────────────────────────────────┤
-│  引擎 A: SiliconFlow API                                │
+│  引擎 A: SiliconFlow API (services/siliconflow.js)      │
 │  ├── Qwen2.5-VL-72B (视觉理解 + OCR)                    │
-│  └── 图形描述、文字识别                                  │
+│  └── 负责：图形描述 (Vision)、文字提取 (OCR)             │
 ├─────────────────────────────────────────────────────────┤
-│  引擎 B: DeepSeek API                                   │
+│  引擎 B: DeepSeek API (services/deepseek.js)            │
 │  ├── DeepSeek Chat (逻辑推理)                           │
-│  └── 三段式解题：模型判断 → 解题思路 → 详细步骤          │
+│  └── 负责：三段式解题 (模型判断 → 思路 → 步骤)           │
 ├─────────────────────────────────────────────────────────┤
-│  引擎 D: MinerU + Qwen Grounding                        │
-│  ├── MinerU 云 API (最高精度图形提取)                   │
-│  └── Qwen Grounding (边界框检测)                        │
+│  引擎 C: Diagram Detector (services/diagram_detector.js)│
+│  ├── MinerU (PDF/文档高保真解析)                        │
+│  ├── Qwen Grounding (图形边界框检测)                    │
+│  └── 负责：精准提取题目中的辅助图片                     │
 └─────────────────────────────────────────────────────────┘
 ```
 
@@ -90,17 +95,18 @@ start.bat
 编辑 `.env` 文件：
 
 ```env
-# SiliconFlow API (视觉模型)
+# SiliconFlow API (视觉模型 - Qwen/InternVL)
 SILICONFLOW_API_KEY=sk-xxx
+# 默认模型: Qwen/Qwen2.5-VL-72B-Instruct
 
 # DeepSeek API (推理模型)  
 DEEPSEEK_API_KEY=sk-xxx
 DEEPSEEK_API_URL=https://api.deepseek.com/v1/chat/completions
 
-# MinerU 云 API (文档解析，可选)
+# MinerU 云 API (高精度图形提取，可选)
 MINERU_ENABLED=true
 MINERU_API_KEY=eyJxxx...
-MINERU_URL=https://mineru.net
+MINERU_URL=https://mineru.net/api/v4
 
 # 服务器端口
 PORT=3003
@@ -108,35 +114,51 @@ PORT=3003
 
 ### API 获取方式
 
-| API | 获取地址 |
-|-----|----------|
-| SiliconFlow | https://cloud.siliconflow.cn |
-| DeepSeek | https://platform.deepseek.com |
-| MinerU | https://mineru.net |
+| API | 用途 | 获取地址 |
+|-----|-----|----------|
+| SiliconFlow | 视觉/OCR | https://cloud.siliconflow.cn |
+| DeepSeek | 逻辑推理 | https://platform.deepseek.com |
+| MinerU | 图形提取 | https://mineru.net |
 
 ## 📁 项目结构
 
+项目已进行模块化重构，结构清晰：
+
 ```
 MathSolver/
-├── server.js        # 主服务 (1080 行)
-├── package.json     # 依赖配置
-├── .env.example     # 环境变量模板
-├── .gitignore       # Git 忽略规则
-├── setup.bat/sh     # 一键配置脚本
-├── start.bat/sh     # 启动脚本
-└── public/          # 前端静态文件
-    ├── index.html   # 主页面
-    ├── script.js    # 前端逻辑
-    └── style.css    # 样式文件
+├── server.js                  # 入口文件 (Express App)
+├── .env                       # 环境变量 (不要提交)
+├── .gitignore                 # Git 忽略规则
+├── package.json               # 依赖配置
+│
+├── services/                  # [后端服务层]
+│   ├── config.js              # 配置管理 & Mock 数据
+│   ├── deepseek.js            # 推理服务封装
+│   ├── siliconflow.js         # 视觉 & OCR 服务封装
+│   ├── mineru.js              # MinerU 图形提取服务
+│   ├── diagram_detector.js    # 图形检测主逻辑 (多层级 Fallback)
+│   └── image_utils.js         # 图片处理工具 (Sharp)
+│
+├── public/                    # [前端静态资源]
+│   ├── index.html             # 主页面
+│   ├── style.css              # 样式文件 (Glassmorphism + Dark Mode)
+│   ├── script.js              # 主逻辑入口
+│   │
+│   └── js/                    # [前端模块]
+│       ├── api_client.js      # API 请求封装
+│       ├── math_renderer.js   # LaTeX/Markdown 渲染器
+│       └── ui_manager.js      # UI 交互管理
+│
+└── uploads/                   # 临时文件目录 (自动清理)
 ```
 
 ## 🔌 API 端点
 
-| 端点 | 方法 | 说明 |
-|------|------|------|
-| `/api/solve` | POST | 上传图片，返回解题结果 |
-| `/api/chat` | POST | 文字对话 |
-| `/api/health` | GET | 健康检查 |
+| 端点 | 方法 | 参数 | 说明 |
+|------|------|------|------|
+| `/api/solve` | POST | `image` (File) 或 `imageBase64` | 核心接口：上传图片，返回识别文本、图形及解题步骤 |
+| `/api/chat` | POST | `messages` (Array) | 对话接口：支持上下文追问 |
+| `/api/health` | GET | - | 健康检查，返回当前模式 (Mock/Prod) |
 
 ## 📄 许可证
 
