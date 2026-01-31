@@ -34,6 +34,9 @@
     <!-- Cropper.js -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/cropperjs@1.6.1/dist/cropper.min.css">
 
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
     <script defer src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
@@ -52,14 +55,14 @@
     <div id="math-canvas-container"></div>
 
     <div class="glass-wrapper">
-        <button id="mobile-menu-btn" class="icon-btn" aria-label="打开菜单">☰</button>
+        <button id="mobile-menu-btn" class="icon-btn" aria-label="打开菜单"><i data-lucide="menu"></i></button>
 
         <div class="app-layout">
             <!-- 侧边栏 -->
             <aside class="sidebar" id="sidebar">
                 <div class="sidebar-header">
                     <button id="new-chat-btn" class="new-chat-btn">
-                        <span>+</span> 新建对话
+                        <i data-lucide="plus" style="width: 18px; height: 18px;"></i> 新建对话
                     </button>
                 </div>
                 <div class="history-list" id="history-list">
@@ -78,21 +81,8 @@
                     </div>
 
                     <div class="glass-snowflake" id="theme-toggle" title="切换主题">
-                        <svg class="icon-svg icon-snow" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M12 3v18M3 12h18M5.6 5.6l12.8 12.8M5.6 18.4L18.4 5.6" />
-                            <path d="M16 3l-4 4-4-4M21 8l-4 4 4 4M16 21l-4-4-4 4M3 16l4-4-4-4" />
-                        </svg>
-
-                        <svg class="icon-svg icon-cream" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M7 12L12 22L17 12" />
-                            <path d="M9 16L15 16" />
-                            <path d="M10.5 19L13.5 19" />
-                            <path
-                                d="M7 12 C7 11, 8 10, 9.5 10 C11 10, 11 11, 12 11 C13 11, 13 10, 14.5 10 C16 10, 17 11, 17 12" />
-                            <path d="M14.5 10 C15.5 10, 16.5 8, 15 6 C13.5 4, 10.5 4, 9 6 C7.5 8, 8.5 10, 9.5 10" />
-                        </svg>
+                        <i data-lucide="sun" class="icon-svg icon-snow"></i>
+                        <i data-lucide="moon" class="icon-svg icon-cream"></i>
                     </div>
                 </div>
 
@@ -109,7 +99,8 @@
                 <!-- 输入区域 -->
                 <div class="input-area">
                     <div class="input-container">
-                        <button id="upload-btn" class="icon-btn upload-btn" title="上传图片" aria-label="上传图片">📎</button>
+                        <button id="upload-btn" class="icon-btn upload-btn" title="上传图片" aria-label="上传图片"><i
+                                data-lucide="paperclip"></i></button>
 
                         <div class="input-wrapper">
                             <input id="chat-input" type="text" placeholder="输入追问或上传图片..." autocomplete="off"
@@ -117,16 +108,29 @@
                             <div id="ghost-input"></div>
                         </div>
 
-                        <button id="send-btn" class="icon-btn send-btn" title="发送" aria-label="发送消息">📤</button>
-                        <button id="camera-btn" class="icon-btn camera-btn" title="拍照" aria-label="拍照">📷</button>
+                        <button id="camera-btn" class="icon-btn camera-btn" title="拍照" aria-label="拍照"><i
+                                data-lucide="camera"></i></button>
+                        <button id="send-btn" class="icon-btn send-btn" title="发送" aria-label="发送消息"><i
+                                data-lucide="send"></i></button>
                     </div>
 
                     <div class="toolbar">
-                        <button class="icon-btn more-btn" id="more-btn" aria-label="更多选项">⚙️</button>
+                        <button class="icon-btn more-btn" id="more-btn" aria-label="更多选项"><i
+                                data-lucide="settings"></i></button>
                         <div class="dropdown-content" id="dropdownMenu">
-                            <div class="dropdown-item" id="btn-tts"><span id="tts-label">🔇 朗读: 关</span></div>
-                            <div class="dropdown-item" id="btn-theme"><span>🌗 主题切换</span></div>
-                            <div class="dropdown-item" id="btn-clear" style="color:#ff5252"><span>🗑️ 清空对话</span></div>
+                            <div class="dropdown-item" id="btn-tts">
+                                <span id="tts-label" style="display: flex; align-items: center; gap: 8px;">
+                                    <i data-lucide="volume-x" style="width: 16px;"></i> 朗读: 关
+                                </span>
+                            </div>
+                            <div class="dropdown-item" id="btn-theme"
+                                style="display: flex; align-items: center; gap: 8px;">
+                                <i data-lucide="moon" style="width: 16px;"></i> 切换主题
+                            </div>
+                            <div class="dropdown-item" id="btn-clear"
+                                style="color:#ff5252; display: flex; align-items: center; gap: 8px;">
+                                <i data-lucide="trash-2" style="width: 16px;"></i> 清空对话
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -136,11 +140,66 @@
 
     <div id="sidebar-overlay" class="overlay"></div>
 
+    <!-- 悬浮题目看板 (Context Panel) -->
+    <div id="context-panel" class="context-panel hidden">
+        <div class="context-header" id="context-header">
+            <div class="context-title">
+                <i data-lucide="clipboard-list"></i> <span>题目看板</span>
+            </div>
+            <div class="context-controls">
+                <button id="context-lock-btn" class="context-toggle-btn" title="锁定/解锁看板内容">
+                    <i data-lucide="unlock"></i>
+                </button>
+                <button id="context-toggle-btn" class="context-toggle-btn" title="收起/展开">
+                    <i data-lucide="chevron-right"></i>
+                </button>
+            </div>
+        </div>
+        <div class="context-body">
+            <div class="context-image-container">
+                <img id="context-image" src="" alt="题目图片" onclick="openImageLightbox(this.src)">
+            </div>
+            <div class="context-text-container" id="context-text">
+                <!-- 题目文字 -->
+            </div>
+        </div>
+
+        <!-- Resize Handles -->
+        <div class="resizer resizer-r"></div>
+        <div class="resizer resizer-b"></div>
+        <div class="resizer resizer-rb"></div>
+        <div class="resizer resizer-l"></div>
+        <div class="resizer resizer-lb"></div>
+        <div class="resizer resizer-t"></div>
+        <div class="resizer resizer-tr"></div>
+        <div class="resizer resizer-tl"></div>
+    </div>
+
+    <!-- 移动端 FAB -->
+    <button id="mobile-context-fab" class="mobile-context-fab">
+        <i data-lucide="clipboard-list"></i>
+    </button>
+
+    <!-- 移动端 Modal -->
+    <div id="mobile-context-modal" class="mobile-context-modal">
+        <div class="mobile-modal-overlay"></div>
+        <div class="mobile-modal-content">
+            <div class="mobile-modal-header">
+                <h3>当前题目</h3>
+                <button id="mobile-modal-close"><i data-lucide="x"></i></button>
+            </div>
+            <div class="mobile-modal-body">
+                <img id="mobile-context-image" src="" alt="题目" onclick="openImageLightbox(this.src)">
+                <div id="mobile-context-text"></div>
+            </div>
+        </div>
+    </div>
+
     <!-- 裁剪模态框 -->
     <div class="crop-modal" id="crop-modal">
         <div class="crop-header">
             <span class="crop-title">裁剪图片</span>
-            <button class="icon-btn" id="btn-crop-cancel">✕</button>
+            <button class="icon-btn" id="btn-crop-cancel"><i data-lucide="x"></i></button>
         </div>
         <div class="crop-container">
             <img id="crop-image" src="">
@@ -151,13 +210,42 @@
         </div>
     </div>
 
+    <!-- 确认模态框 -->
+    <div class="modal-overlay" id="confirm-modal">
+        <div class="modal-content">
+            <h3 class="modal-title" id="confirm-title">确认操作</h3>
+            <p class="modal-message" id="confirm-message">确定要执行此操作吗？</p>
+            <div class="modal-actions">
+                <button class="btn btn-secondary" id="btn-confirm-cancel">取消</button>
+                <button class="btn btn-danger" id="btn-confirm-ok">确定</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast 容器 -->
+    <div id="toast-container" class="toast-container"></div>
+
     <!-- 隐藏的文件输入 -->
     <input type="file" id="file-input" accept="image/*" style="display: none;">
     <input type="file" id="camera-input" accept="image/*" capture="environment" style="display: none;">
 
     <!-- Scripts -->
     <script src="https://cdn.jsdelivr.net/npm/cropperjs@1.6.1/dist/cropper.min.js"></script>
-    <script type="module" src="script.js?v=2"></script>
+    <script>
+        // 初始化 Lucide 图标 (静态内容)
+        window.addEventListener('load', () => {
+            if (window.lucide) {
+                window.lucide.createIcons();
+            }
+        });
+    </script>
+    <!-- Core Modules -->
+    <script src="js/math_renderer.js"></script>
+    <script src="js/api_client.js"></script>
+    <script src="js/ui_manager.js"></script>
+
+    <!-- Main Logic -->
+    <script type="module" src="script.js?v=3"></script>
 </body>
 
 </html>

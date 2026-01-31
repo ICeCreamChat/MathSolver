@@ -2,25 +2,42 @@
 @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400&display=swap');
 
 :root {
-    /* === 核心变量 (深色默认) === */
-    --bg-base: #050b14;
-    --text-primary: #e2e8f0;
+    /* === 核心变量 (Pro Max Dark) === */
+    --bg-base: #020617;
+    /* Slate 950 - Deeper dark */
+    --text-primary: #f8fafc;
+    /* Slate 50 */
     --text-secondary: #94a3b8;
+    /* Slate 400 */
+
+    /* Neon Cyan Accent - Dynamic & Glowing */
     --accent-color: #00f0ff;
+    --accent-glow: 0 0 20px rgba(0, 240, 255, 0.5);
 
-    /* 玻璃质感 */
-    --glass-panel: rgba(15, 23, 42, 0.6);
-    --glass-border: rgba(255, 255, 255, 0.1);
-    --sidebar-glass: rgba(10, 15, 30, 0.7);
+    /* 极致玻璃拟态 (Pro Max Glass) */
+    --glass-panel: rgba(15, 23, 42, 0.45);
+    /* More transparent */
+    --glass-border: rgba(255, 255, 255, 0.08);
+    --glass-highlight: rgba(255, 255, 255, 0.15);
+    /* Top border highlight */
+    --sidebar-glass: rgba(2, 6, 23, 0.6);
 
-    --glass-noise-pattern: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.07'/%3E%3C/svg%3E");
+    /* Noise Texture for Premium Feel */
+    --glass-noise-pattern: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.04'/%3E%3C/svg%3E");
 
-    --bot-bubble: rgba(30, 41, 59, 0.6);
+    --bot-bubble: rgba(30, 41, 59, 0.5);
     --user-bubble: linear-gradient(135deg, #0061ff 0%, #60efff 100%);
     --user-text: #ffffff;
 
-    --shadow-depth: 0 25px 50px -12px rgba(0, 0, 0, 0.6);
-    --glass-blur: blur(40px);
+    /* Pro Max Shadows */
+    --shadow-depth:
+        0 4px 6px -1px rgba(0, 0, 0, 0.1),
+        0 2px 4px -1px rgba(0, 0, 0, 0.06),
+        0 20px 50px -12px rgba(0, 0, 0, 0.5);
+    /* Ambient depth */
+
+    --glass-blur: blur(24px);
+    /* Increased blur */
 
     /* 安全区域 */
     --safe-top: env(safe-area-inset-top, 20px);
@@ -48,6 +65,14 @@ body.light-mode {
 * {
     box-sizing: border-box;
     -webkit-tap-highlight-color: transparent;
+}
+
+/* Lucide Icons */
+.lucide {
+    stroke-width: 2px;
+    width: 20px;
+    height: 20px;
+    vertical-align: middle;
 }
 
 html,
@@ -120,12 +145,16 @@ body {
 .app-layout {
     width: 100%;
     height: 100%;
-    max-width: 1400px;
+    max-width: 1600px;
+    /* Wider for Pro view */
     display: flex;
     background: var(--glass-panel);
     border: 1px solid var(--glass-border);
+    border-top: 1px solid var(--glass-highlight);
+    /* Top highlight */
     border-radius: 24px;
-    box-shadow: var(--shadow-depth);
+    box-shadow: var(--shadow-depth), inset 0 0 0 1px rgba(255, 255, 255, 0.05);
+    /* Inner stroke */
     backdrop-filter: var(--glass-blur);
     -webkit-backdrop-filter: var(--glass-blur);
     overflow: hidden;
@@ -361,8 +390,59 @@ body.light-mode .icon-cream {
     background: var(--bot-bubble);
     color: var(--text-primary);
     border: 1px solid var(--glass-border);
+    border-top: 1px solid var(--glass-highlight);
     border-top-left-radius: 4px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
+
+.message-content img {
+    max-width: 100%;
+    border-radius: 8px;
+    margin: 10px 0;
+}
+
+/* === 题目吸顶效果 === */
+.sticky-problem-header {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background: rgba(15, 23, 42, 0.85);
+    /* 深色模式默认背景 */
+    backdrop-filter: blur(12px);
+    border-bottom: 2px solid var(--accent-color);
+    margin: -16px -16px 16px -16px;
+    /* 抵消父级 padding */
+    padding: 16px 16px 12px 16px;
+    border-radius: 12px 12px 0 0;
+    box-shadow: 0 4px 20px -5px rgba(0, 0, 0, 0.3);
+
+    /* 限制高度，防止题目太长占满屏幕 */
+    max-height: 40vh;
+    overflow-y: auto;
+
+    /* 滚动条美化 */
+    scrollbar-width: thin;
+    scrollbar-color: var(--accent-color) transparent;
+}
+
+body.light-mode .sticky-problem-header {
+    background: rgba(255, 255, 255, 0.85);
+}
+
+.sticky-problem-header::-webkit-scrollbar {
+    width: 4px;
+}
+
+.sticky-problem-header::-webkit-scrollbar-thumb {
+    background: var(--accent-color);
+    border-radius: 2px;
+}
+
+.solution-body {
+    padding-top: 8px;
+}
+
+/* =================== */
 
 .message.user {
     margin-left: auto;
@@ -444,13 +524,14 @@ body.light-mode .icon-cream {
     margin: 16px 0;
 }
 
-/* 输入区域 */
+/* Input Area Polish */
 .input-area {
     padding: 20px 30px;
     display: flex;
     gap: 12px;
-    border-top: 1px solid var(--glass-border);
-    background: linear-gradient(rgba(0, 0, 0, 0.05), rgba(0, 0, 0, 0.05)), var(--glass-noise-pattern);
+    border-top: 1px solid var(--glass-highlight);
+    /* Subtle highlight */
+    background: linear-gradient(to top, rgba(0, 0, 0, 0.2), transparent), var(--glass-noise-pattern);
     backdrop-filter: var(--glass-blur);
     flex-shrink: 0;
     transition: background 0.3s ease;
@@ -458,18 +539,20 @@ body.light-mode .icon-cream {
 
 .input-container {
     flex: 1;
-    background: rgba(0, 0, 0, 0.05);
+    background: rgba(0, 0, 0, 0.2);
     border: 1px solid var(--glass-border);
     border-radius: 24px;
     display: flex;
     align-items: center;
     padding: 6px 16px;
-    transition: 0.3s;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .input-container:focus-within {
     border-color: var(--accent-color);
-    background: rgba(0, 0, 0, 0.1);
+    background: rgba(0, 0, 0, 0.3);
+    box-shadow: 0 0 0 2px rgba(0, 240, 255, 0.1), inset 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
 /* Ghost 输入法 */
@@ -529,9 +612,13 @@ body.light-mode .icon-cream {
     flex-shrink: 0;
 }
 
+/* Icon Buttons Polish */
 .icon-btn:hover {
     background: rgba(255, 255, 255, 0.1);
     color: var(--accent-color);
+    box-shadow: 0 0 15px rgba(0, 240, 255, 0.3);
+    /* Neon glow */
+    transform: translateY(-1px);
 }
 
 .dropdown-content {
@@ -609,8 +696,15 @@ body.light-mode .icon-cream {
 }
 
 .katex {
-    font-size: 1.1em;
+    font-size: 1.0em !important;
+    font-family: 'Inter', sans-serif !important; /* Force sans-serif fallback */
 }
+
+/* Ensure Chinese/Text inside equations uses App Font instead of Math Serif */
+.katex .mtext {
+    font-family: 'Inter', sans-serif !important;
+}
+
 
 .loading {
     text-align: center;
@@ -780,6 +874,146 @@ body.light-mode .icon-cream {
 }
 
 /* ==========================================================================
+   Toast 通知
+   ========================================================================== */
+.toast-container {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 10001;
+    /* High z-index */
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.toast {
+    min-width: 250px;
+    padding: 12px 16px;
+    border-radius: 8px;
+    background: var(--sidebar-glass);
+    border: 1px solid var(--glass-border);
+    backdrop-filter: blur(10px);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+    color: var(--text-primary);
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    animation: slideIn 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+    border-left: 4px solid var(--accent-color);
+}
+
+.toast.error {
+    border-left-color: #ef4444;
+}
+
+.toast.success {
+    border-left-color: #22c55e;
+}
+
+.toast.info {
+    border-left-color: var(--accent-color);
+}
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateX(20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+@keyframes slideOut {
+    from {
+        opacity: 1;
+        transform: translateX(0);
+    }
+
+    to {
+        opacity: 0;
+        transform: translateX(20px);
+    }
+}
+
+/* ==========================================================================
+   通用模态框
+   ========================================================================== */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.6);
+    z-index: 2000;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(4px);
+    animation: fadeIn 0.2s ease;
+}
+
+.modal-overlay.active {
+    display: flex;
+}
+
+.modal-content {
+    background: var(--bg-base);
+    background: linear-gradient(145deg, var(--bg-base), var(--sidebar-glass));
+    border: 1px solid var(--glass-border);
+    border-radius: 16px;
+    padding: 24px;
+    width: 90%;
+    max-width: 400px;
+    box-shadow: var(--shadow-depth);
+    transform: scale(0.95);
+    animation: zoomIn 0.2s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+@keyframes zoomIn {
+    to {
+        transform: scale(1);
+    }
+}
+
+.modal-title {
+    margin: 0 0 12px 0;
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.modal-message {
+    margin: 0 0 24px 0;
+    font-size: 15px;
+    color: var(--text-secondary);
+    line-height: 1.5;
+}
+
+.modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+}
+
+.btn-danger {
+    background: linear-gradient(135deg, #ef4444 0%, #f87171 100%);
+    color: white;
+    border: none;
+    box-shadow: 0 4px 15px rgba(239, 68, 68, 0.3);
+}
+
+.btn-danger:hover {
+    box-shadow: 0 6px 20px rgba(239, 68, 68, 0.4);
+    transform: translateY(-2px);
+}
+
+/* ==========================================================================
    表格和代码块样式 (MathSolver 专用)
    ========================================================================== */
 .message-content table {
@@ -803,10 +1037,72 @@ body.light-mode .message-content table {
     border-bottom: 1px solid var(--glass-border);
 }
 
-.message-content th {
+/* 表格样式优化 - Glassmorphic Tables */
+.message-content table,
+.context-text-container table {
+    width: 100%;
+    border-collapse: separate;
+    /* 允许圆角 */
+    border-spacing: 0;
+    margin: 16px 0;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid var(--glass-border);
+    border-radius: 12px;
+    overflow: hidden;
+    /* 确保圆角有效 */
+}
+
+.message-content thead,
+.context-text-container thead {
     background: rgba(0, 240, 255, 0.1);
+}
+
+body.light-mode .message-content thead,
+body.light-mode .context-text-container thead {
+    background: rgba(14, 165, 233, 0.1);
+}
+
+.message-content th,
+.message-content td,
+.context-text-container th,
+.context-text-container td {
+    padding: 12px 16px;
+    text-align: left;
+    border-bottom: 1px solid var(--glass-border);
+    transition: background 0.2s;
+}
+
+.message-content th,
+.context-text-container th {
     font-weight: 600;
     color: var(--accent-color);
+    letter-spacing: 0.5px;
+    font-size: 0.95em;
+    text-transform: uppercase;
+}
+
+.message-content tr:last-child td,
+.context-text-container tr:last-child td {
+    border-bottom: none;
+}
+
+.message-content tbody tr:hover td,
+.context-text-container tbody tr:hover td {
+    background: rgba(255, 255, 255, 0.05);
+}
+
+body.light-mode .message-content tbody tr:hover td,
+body.light-mode .context-text-container tbody tr:hover td {
+    background: rgba(0, 0, 0, 0.03);
+}
+
+/* 响应式表格容器 (自动包裹) */
+.table-wrapper {
+    overflow-x: auto;
+    border-radius: 12px;
+    margin: 16px 0;
+    scrollbar-width: thin;
+    scrollbar-color: var(--accent-color) transparent;
 }
 
 body.light-mode .message-content th {
@@ -839,6 +1135,501 @@ body.light-mode .message-content pre {
 /* ==========================================================================
    移动端适配
    ========================================================================== */
+/* === 全局悬浮看板 (Adaptive Context Panel) === */
+.context-panel {
+    position: fixed;
+    top: 80px;
+    right: 20px;
+    /* Adaptive Width Strategy */
+    width: fit-content;
+    min-width: 320px;
+    max-width: 45vw;
+    /* Don't cover more than half screen */
+
+    background: var(--glass-panel);
+    backdrop-filter: blur(30px);
+    /* Pro Max Blur */
+    -webkit-backdrop-filter: blur(30px);
+    border: 1px solid var(--glass-border);
+    border-top: 1px solid var(--glass-highlight);
+    border-radius: 20px;
+    box-shadow: 0 20px 60px -10px rgba(0, 0, 0, 0.5), inset 0 0 0 1px rgba(255, 255, 255, 0.05);
+
+    z-index: 1000;
+    transition:
+        transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1),
+        /* Bouncy movement */
+        opacity 0.3s ease,
+        width 0.4s ease,
+        min-width 0.4s ease,
+        border-radius 0.4s ease;
+
+    display: flex;
+    flex-direction: column;
+    max-height: 70vh;
+    overflow: hidden;
+
+    /* Font Optimization */
+    font-family: 'Inter', system-ui, sans-serif;
+    color: var(--text-primary);
+}
+
+/* Header Redesign */
+.context-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 16px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    background: rgba(0, 0, 0, 0.2);
+    /* Slight header tint */
+    cursor: grab;
+    user-select: none;
+    flex-shrink: 0;
+    /* Prevent header shrink */
+}
+
+.context-header:active {
+    cursor: grabbing;
+}
+
+.context-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--accent-color);
+    letter-spacing: 0.5px;
+}
+
+.context-title i {
+    width: 16px;
+    height: 16px;
+}
+
+/* Body & Content Area */
+.context-body {
+    flex: 1;
+    overflow-y: auto;
+    /* Internal scroll */
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+/* Custom Slim Scrollbar */
+.context-body::-webkit-scrollbar {
+    width: 6px;
+}
+
+.context-body::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.context-body::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 3px;
+}
+
+.context-body::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+.context-image-container img {
+    width: 100%;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    transition: transform 0.3s ease;
+}
+
+.context-image-container img:hover {
+    transform: scale(1.02);
+}
+
+.context-text-container {
+    font-size: 0.95rem;
+    line-height: 1.6;
+    color: var(--text-primary);
+}
+
+.context-panel.hidden {
+    opacity: 0;
+    pointer-events: none;
+    transform: translateX(50px) scale(0.9);
+}
+
+/* Resizer Handles - Optimized for Pro Max */
+.resizer {
+    position: absolute;
+    z-index: 1002;
+    touch-action: none;
+    /* Invisible by default, functional hit area */
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+
+/* Show handles slightly on hover for affordance (Optional, maybe just cursor change is enough) */
+/* .context-panel:hover .resizer { opacity: 0.1; background: var(--accent-color); } */
+
+.resizer-r {
+    top: 0;
+    right: 0;
+    width: 12px;
+    height: 100%;
+    cursor: e-resize;
+    margin-right: -6px;
+    /* Extend hit area outside */
+}
+
+.resizer-b {
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 10px;
+    cursor: n-resize;
+}
+
+.resizer-rb {
+    bottom: 0;
+    right: 0;
+    width: 16px;
+    height: 16px;
+    cursor: nwse-resize;
+    /* Visual indicator for corner resize */
+    background: linear-gradient(135deg, transparent 50%, var(--accent-color) 100%);
+    border-radius: 0 0 16px 0;
+    opacity: 0.5;
+}
+
+.resizer-l {
+    top: 0;
+    left: 0;
+    width: 10px;
+    height: 100%;
+    cursor: w-resize;
+}
+
+.resizer-lb {
+    bottom: 0;
+    left: 0;
+    width: 16px;
+    height: 16px;
+    cursor: nesw-resize;
+}
+
+.resizer-t {
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 10px;
+    cursor: n-resize;
+}
+
+.resizer-tr {
+    top: 0;
+    right: 0;
+    width: 16px;
+    height: 16px;
+    cursor: nesw-resize;
+}
+
+.resizer-tl {
+    top: 0;
+    left: 0;
+    width: 16px;
+    height: 16px;
+    cursor: nwse-resize;
+}
+
+/* Mini Mode Fix */
+.context-panel.mini {
+    min-width: 48px;
+    width: 48px !important;
+    height: 48px !important;
+    resize: none !important;
+    border-radius: 24px;
+    background: rgba(15, 23, 42, 0.9);
+    padding: 0;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    /* Ensure hidden children don't affect layout */
+}
+
+/* Light Mode Support for Mini Panel */
+body.light-mode .context-panel.mini {
+    background: rgba(255, 255, 255, 0.9);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.5);
+}
+
+.context-panel.mini:hover {
+    transform: scale(1.1);
+}
+
+/* Hide toggle buttons */
+.context-panel.mini .context-controls {
+    display: none !important;
+}
+
+/* Hide resize handles */
+.context-panel.mini .resizer {
+    display: none !important;
+}
+
+/* Hide body and title text */
+.context-panel.mini .context-body,
+.context-panel.mini .context-title span {
+    display: none !important;
+}
+
+/* Style the header to be full size */
+.context-panel.mini .context-header {
+    padding: 0;
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    justify-content: center;
+    align-items: center;
+    border: none;
+    background: transparent;
+}
+
+/* Force show the icon */
+.context-panel.mini .context-title {
+    margin: 0;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.context-panel.mini .context-title i {
+    width: 24px;
+    height: 24px;
+    color: var(--accent-color);
+    display: block !important;
+    /* Ensure visibility */
+}
+
+.context-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 16px;
+    background: rgba(255, 255, 255, 0.05);
+    border-bottom: 1px solid var(--glass-border);
+    cursor: grab;
+    /* 拖拽手势 */
+    user-select: none;
+}
+
+.context-header:active {
+    cursor: grabbing;
+}
+
+.context-title {
+    font-weight: 600;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--accent-color);
+}
+
+/* Header Controls */
+.context-controls {
+    display: flex;
+    flex-direction: row;
+    /* Force row layout */
+    align-items: center;
+    gap: 8px;
+    /* Add space between buttons */
+}
+
+.context-toggle-btn {
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    cursor: pointer;
+    padding: 4px;
+    border-radius: 4px;
+    transition: all 0.2s;
+    display: flex;
+    /* Ensure icon centers */
+    align-items: center;
+    justify-content: center;
+}
+
+.context-toggle-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--text-primary);
+}
+
+.context-body {
+    padding: 16px;
+    overflow-y: auto;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    /* 滚动条 */
+    scrollbar-width: thin;
+    scrollbar-color: var(--accent-color) transparent;
+}
+
+.context-body::-webkit-scrollbar {
+    width: 4px;
+}
+
+.context-body::-webkit-scrollbar-thumb {
+    background: var(--accent-color);
+    border-radius: 2px;
+}
+
+.context-image-container img {
+    width: 100%;
+    border-radius: 8px;
+    border: 1px solid var(--glass-border);
+    cursor: zoom-in;
+    transition: transform 0.2s;
+}
+
+.context-image-container img:hover {
+    transform: scale(1.02);
+}
+
+.context-text-container {
+    font-size: 14px;
+    line-height: 1.6;
+    color: var(--text-primary);
+    max-height: 300px;
+    /* 防止文字太长 */
+}
+
+/* === 移动端 FAB & Modal === */
+.mobile-context-fab {
+    display: none;
+    /* 桌面端隐藏 */
+    position: fixed;
+    bottom: 30px;
+    right: 20px;
+    width: 50px;
+    height: 50px;
+    border-radius: 25px;
+    background: var(--accent-color);
+    border: none;
+    color: #fff;
+    box-shadow: 0 4px 15px rgba(0, 240, 255, 0.4);
+    z-index: 1001;
+    cursor: pointer;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.mobile-context-fab:active {
+    transform: scale(0.9);
+}
+
+.mobile-context-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 2000;
+    pointer-events: none;
+    /* 默认穿透 */
+    opacity: 0;
+    transition: opacity 0.3s;
+}
+
+.mobile-context-modal.active {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.mobile-modal-overlay {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(4px);
+}
+
+.mobile-modal-content {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    max-height: 80vh;
+    background: var(--bg-base);
+    border-top-left-radius: 20px;
+    border-top-right-radius: 20px;
+    display: flex;
+    flex-direction: column;
+    transform: translateY(100%);
+    transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.mobile-context-modal.active .mobile-modal-content {
+    transform: translateY(0);
+}
+
+.mobile-modal-header {
+    padding: 16px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid var(--glass-border);
+}
+
+.mobile-modal-header h3 {
+    margin: 0;
+    font-size: 16px;
+    color: var(--accent-color);
+}
+
+.mobile-modal-header button {
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+    padding: 4px;
+}
+
+.mobile-modal-body {
+    padding: 20px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.mobile-modal-body img {
+    width: 100%;
+    border-radius: 8px;
+}
+
+/* === 响应式调整 === */
+@media (max-width: 768px) {
+    .context-panel {
+        display: none !important;
+        /* 移动端隐藏桌面看板 */
+    }
+
+    .mobile-context-fab {
+        display: flex;
+        /* 移动端显示 FAB */
+    }
+}
+
+/* 移除旧的 sticky-problem-header */
+/* .sticky-problem-header { ... } */
+
 @media (max-width: 768px) {
     .glass-wrapper {
         padding: 0;

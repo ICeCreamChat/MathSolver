@@ -3,18 +3,15 @@ import * as THREE from 'three';
 // ==========================================
 // 1. 配置
 // ==========================================
-const API_CONFIG = {
-    mathSolver: {
-        url: '/api/solve'
-    },
-    chat: {
-        url: '/api/chat'
-    }
-};
+// ==========================================
+// 1. 配置
+// ==========================================
+// API_CONFIG removed - using ApiClient module exclusively
 
 // 状态
 let isTTSEnabled = false;
 let isManualTheme = false;
+let isManualContextSwitch = false; // 看板手动锁定状态
 
 // Cropper 状态
 let cropper = null;
@@ -28,7 +25,17 @@ let animationFrameId = null;
 let isPageVisible = true;
 
 // 记忆系统 (Local Storage)
-let chatSessions = JSON.parse(localStorage.getItem('mathSolverSessions')) || [];
+// 使用安全解析，避免 JSON 解析失败导致的白屏
+function safeJsonParse(str, fallback) {
+    try {
+        return str ? JSON.parse(str) : fallback;
+    } catch (e) {
+        console.error('Storage 解析失败:', e);
+        return fallback;
+    }
+}
+
+let chatSessions = safeJsonParse(localStorage.getItem('mathSolverSessions'), []);
 let currentSessionId = localStorage.getItem('mathSolverCurrentSession') || null;
 
 // ==========================================
@@ -47,8 +54,17 @@ document.addEventListener('DOMContentLoaded', () => {
     initChatSystem();
     initCustomCursor();
 
+    // Global Error Boundary
+    window.onerror = function (msg, url, lineNo, columnNo, error) {
+        console.error('Global Error:', msg, 'at', lineNo, ':', columnNo);
+        if (window.showToast) window.showToast(`System Error: ${msg}`, 'error');
+        return false;
+    };
+
     initMathParticleScene();
     initPerformanceOptimization();
+
+    if (window.UiManager) window.UiManager.init();
 
     if (window.marked) window.marked.setOptions({ breaks: true, gfm: true });
 });
@@ -298,6 +314,7 @@ function startNewChat() {
     saveData();
     renderHistoryList();
     loadSession(currentSessionId);
+    if (window.lucide) window.lucide.createIcons();
 }
 
 function loadSession(id) {
@@ -322,10 +339,10 @@ function closeSidebarMobile() {
     }
 }
 
-function saveMessageToCurrentSession(role, text, imageUrl = null) {
+function saveMessageToCurrentSession(role, text, imageUrl = null, contextData = null) {
     const session = chatSessions.find(s => s.id === currentSessionId);
     if (session) {
-        session.messages.push({ role, text, imageUrl });
+        session.messages.push({ role, text, imageUrl, contextData });
         if (session.messages.length === 2 && role === 'user') {
             session.title = "数学题 " + new Date().toLocaleTimeString();
             renderHistoryList();
@@ -344,14 +361,21 @@ function renderHistoryList() {
         const item = document.createElement('div');
         item.className = `history-item ${session.id === currentSessionId ? 'active' : ''}`;
         item.onclick = () => loadSession(session.id);
-        item.innerHTML = `<span>${session.title}</span><span class="delete-chat" onclick="window.deleteSessionProxy(event, '${session.id}')">×</span>`;
+        // 使用 svg 字符串或 data-lucide
+        item.innerHTML = `<span>${session.title}</span><span class="delete-chat" onclick="window.deleteSessionProxy(event, '${session.id}')"><i data-lucide="x" style="width:16px;"></i></span>`;
         list.appendChild(item);
     });
+    // 渲染完历史列表后刷新图标
+    if (window.lucide) window.lucide.createIcons();
 }
 
-function deleteSession(e, id) {
+async function deleteSession(e, id) {
     e.stopPropagation();
-    if (confirm('确认删除此对话？')) {
+
+    // 使用自定义模态框替代原生 confirm
+    const confirmed = await showConfirm('确认删除', '确定要删除此对话吗？此操作无法撤销。');
+
+    if (confirmed) {
         chatSessions = chatSessions.filter(s => s.id !== id);
         saveData();
         renderHistoryList();
@@ -360,6 +384,7 @@ function deleteSession(e, id) {
         } else if (currentSessionId === id) {
             loadSession(chatSessions[0].id);
         }
+        showToast('对话已删除', 'success');
     }
 }
 window.deleteSessionProxy = deleteSession;
@@ -369,16 +394,91 @@ function updateSidebarActiveState() {
     renderHistoryList();
 }
 
-function clearAllHistory() {
-    if (confirm('确认清空所有对话历史？')) {
+async function clearAllHistory() {
+    // 使用自定义模态框
+    const confirmed = await showConfirm('确认清空', '确定要清空所有对话历史吗？此操作将永久删除所有记录。');
+
+    if (confirmed) {
         localStorage.removeItem('mathSolverSessions');
         localStorage.removeItem('mathSolverCurrentSession');
         chatSessions = [];
         startNewChat();
         const dropdown = document.getElementById('dropdownMenu');
         if (dropdown) dropdown.classList.remove('show');
+        showToast('所有历史已清空', 'success');
     }
 }
+
+// ==========================================
+// 6.2 健壮性工具 (Toast & Modal)
+// ==========================================
+
+// Toast 通知
+function showToast(message, type = 'info') {
+    const container = document.getElementById('toast-container');
+    if (!container) return;
+
+    const toast = document.createElement('div');
+    toast.className = `toast ${type}`;
+
+    let iconName = 'info';
+    if (type === 'success') iconName = 'check-circle';
+    if (type === 'error') iconName = 'alert-circle';
+
+    toast.innerHTML = `<i data-lucide="${iconName}"></i><span>${message}</span>`;
+    container.appendChild(toast);
+
+    if (window.lucide) window.lucide.createIcons();
+
+    // 自动移除
+    setTimeout(() => {
+        toast.style.animation = 'slideOut 0.3s forwards';
+        toast.addEventListener('animationend', () => toast.remove());
+    }, 3000);
+}
+
+// 自定义确认框 (Promise 封装)
+function showConfirm(title, message) {
+    return new Promise((resolve) => {
+        const modal = document.getElementById('confirm-modal');
+        const titleEl = document.getElementById('confirm-title');
+        const msgEl = document.getElementById('confirm-message');
+        const btnCancel = document.getElementById('btn-confirm-cancel');
+        const btnOk = document.getElementById('btn-confirm-ok');
+
+        if (!modal) {
+            // 回退到原生 confirm
+            resolve(confirm(`${title}: ${message}`));
+            return;
+        }
+
+        titleEl.textContent = title;
+        msgEl.textContent = message;
+        modal.classList.add('active');
+
+        const cleanup = () => {
+            modal.classList.remove('active');
+            btnCancel.removeEventListener('click', onCancel);
+            btnOk.removeEventListener('click', onOk);
+        };
+
+        const onCancel = () => {
+            cleanup();
+            resolve(false);
+        };
+
+        const onOk = () => {
+            cleanup();
+            resolve(true);
+        };
+
+        btnCancel.addEventListener('click', onCancel);
+        btnOk.addEventListener('click', onOk);
+    });
+}
+
+// 暴露给全局以便 HTML 调用 (如果需要)
+window.showToast = showToast;
 
 // ==========================================
 // 6.5 图片放大 Lightbox
@@ -408,60 +508,64 @@ function openImageLightbox(imageUrl) {
 // ==========================================
 // 7. 消息显示
 // ==========================================
-function displayMessage(role, text, imageUrl = null, shouldSave = false) {
-    if (shouldSave) saveMessageToCurrentSession(role, text, imageUrl);
+function displayMessage(role, text, imageUrl = null, shouldSave = false, contextData = null) {
+    if (shouldSave) saveMessageToCurrentSession(role, text, imageUrl, contextData);
 
     const container = document.getElementById('messages');
     const msgDiv = document.createElement('div');
     msgDiv.className = `message ${role}`;
 
+    // 如果是 Bot 消息且包含 contextData，绑定数据供 IntersectionObserver 使用
+    if (role === 'bot' && contextData) {
+        msgDiv.dataset.contextData = JSON.stringify(contextData);
+        // 尝试立即更新一次（如果是最新的消息）
+        if (!isManualContextSwitch && window.UiManager) {
+            window.UiManager.updateContextPanel(contextData.image, contextData.text);
+        }
+    }
+
     const avatar = document.createElement('img');
     avatar.className = 'avatar';
     avatar.src = role === 'user' ? 'user-avatar.jpg' : 'bot-avatar.jpg';
+    avatar.alt = role;
+
+    // 图片加载失败时回退到 Lucide 图标
     avatar.onerror = function () {
-        this.src = role === 'user'
-            ? "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect fill='%2310b981' width='100' height='100'/%3E%3Ctext x='50' y='60' text-anchor='middle' fill='white' font-size='40'%3E👤%3C/text%3E%3C/svg%3E"
-            : "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect fill='%230061ff' width='100' height='100'/%3E%3Ctext x='50' y='60' text-anchor='middle' fill='white' font-size='40'%3E📐%3C/text%3E%3C/svg%3E";
+        const iconDiv = document.createElement('div');
+        iconDiv.className = 'avatar icon-avatar'; // 添加一个类以便 CSS 可能的特殊处理
+        iconDiv.innerHTML = role === 'user'
+            ? '<i data-lucide="user"></i>'
+            : '<i data-lucide="bot"></i>';
+        this.replaceWith(iconDiv);
+        if (window.lucide) window.lucide.createIcons();
     };
 
     const contentDiv = document.createElement('div');
     contentDiv.className = 'message-content';
 
-    // 如果有图片，先显示图片（可点击放大）
+    // 移除“查看题目”按钮逻辑
+
+
+    // 如果有图片 (User 上传的)，直接显示
     if (imageUrl) {
         const img = document.createElement('img');
         img.className = 'uploaded-image';
         img.src = imageUrl;
-        img.alt = '上传的题目';
-        img.style.cursor = 'zoom-in';
+        img.alt = 'Uploaded Image';
         img.onclick = () => openImageLightbox(imageUrl);
         contentDiv.appendChild(img);
     }
 
-    // 处理文本内容
     if (text) {
         const textDiv = document.createElement('div');
 
-        // 保护数学公式
-        const mathMap = new Map();
-        const generateId = () => "MATHBLOCK" + Math.random().toString(36).substr(2, 9) + "END";
-        let protectedText = text
-            .replace(/\$\$([\s\S]*?)\$\$/g, (match, code) => { const id = generateId(); mathMap.set(id, `$$${code}$$`); return "\n\n" + id + "\n\n"; })
-            .replace(/\\\[([\s\S]*?)\\\]/g, (match, code) => { const id = generateId(); mathMap.set(id, `$$${code}$$`); return "\n\n" + id + "\n\n"; })
-            .replace(/([^\\]|^)\$([^\$]*?)\$/g, (match, prefix, code) => { const id = generateId(); mathMap.set(id, `$${code}$`); return prefix + id; })
-            .replace(/\\\(([\s\S]*?)\\\)/g, (match, code) => { const id = generateId(); mathMap.set(id, `$${code}$`); return id; });
-
-        if (window.marked) textDiv.innerHTML = window.marked.parse(protectedText);
-        else textDiv.textContent = text;
-
-        let finalHtml = textDiv.innerHTML;
-        // 使用正则替换，处理可能被 HTML 编码的占位符
-        mathMap.forEach((latex, id) => {
-            // 同时匹配原始 ID 和可能被转义的版本
-            const escapedId = id.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-            finalHtml = finalHtml.replace(new RegExp(escapedId, 'g'), latex);
-        });
-        textDiv.innerHTML = finalHtml;
+        // 使用 MathRenderer 模块处理
+        if (window.MathRenderer) {
+            window.MathRenderer.renderMarkdown(text, textDiv);
+        } else {
+            // Fallback if module missing
+            textDiv.textContent = text;
+        }
 
         contentDiv.appendChild(textDiv);
     }
@@ -469,21 +573,409 @@ function displayMessage(role, text, imageUrl = null, shouldSave = false) {
     msgDiv.appendChild(avatar);
     msgDiv.appendChild(contentDiv);
 
-    // 渲染 KaTeX
-    if (window.renderMathInElement) {
-        setTimeout(() => {
-            try {
-                window.renderMathInElement(contentDiv, {
-                    delimiters: [{ left: '$$', right: '$$', display: true }, { left: '$', right: '$', display: false }],
-                    throwOnError: false
-                });
-            } catch (e) { }
-        }, 0);
-    }
+    // KaTeX 渲染 (MathRenderer 已处理，此处可移除或保留作为双重保险)
+    // 移除以前的 setTimeout 因为 restoreAndRender 内部已处理
 
     container.appendChild(msgDiv);
-    requestAnimationFrame(() => { msgDiv.scrollIntoView({ behavior: 'smooth', block: 'end' }); });
+
+    // 生成图标
+    if (window.lucide) window.lucide.createIcons();
+
+    // 绑定滚动监听
+    if (role === 'bot' && contextData) {
+        observeMessageIntersection(msgDiv);
+    }
+
+    requestAnimationFrame(() => {
+        msgDiv.scrollIntoView({ behavior: 'smooth', block: 'end' });
+    });
 }
+
+// ==========================================
+// 13. 全局悬浮看板逻辑 (New Context Panel)
+
+// 13.1 看板更新
+// 13.1 看板更新
+// function updateContextPanel has been moved to js/ui_manager.js
+
+// 13.2 滚动监听 (Scroll Observer)
+// 13.2 滚动同步 (Scroll Sync)
+let messageObserver = null;
+// let isManualContextSwitch = false; // 已在全局定义
+
+function setupScrollObserver() {
+    if (messageObserver) messageObserver.disconnect();
+
+    // 改进：使用多个 threshold 确保捕捉各种进出情况
+    const options = {
+        root: document.getElementById('messages'),
+        threshold: [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
+    };
+
+    messageObserver = new IntersectionObserver((entries) => {
+        // 如果最近发生过手动切换，暂停自动同步一小会儿
+        if (isManualContextSwitch) return;
+
+        // 核心算法改进：寻找屏幕上“最显著”的消息
+        // 比较可见高度 (visible height in pixels) 而不是 intersectionRatio
+        let maxVisibleHeight = 0;
+        let targetEntry = null;
+
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                // 直接比谁的可见高度像素值大
+                if (entry.intersectionRect.height > maxVisibleHeight) {
+                    maxVisibleHeight = entry.intersectionRect.height;
+                    targetEntry = entry;
+                }
+            }
+        });
+
+        // 阈值：如果最大的可见高度太小（比如刚滑入一点点），则不更新
+        if (targetEntry && maxVisibleHeight > 100 && targetEntry.target.dataset.contextData) {
+            try {
+                const data = JSON.parse(targetEntry.target.dataset.contextData);
+                // 仅当不一样时更新，避免无意义重绘
+                const currentText = document.getElementById('context-text').textContent;
+                // 使用 image 作为唯一标识符来去重
+                const currentImage = document.getElementById('context-image').src;
+
+                // 注意：src 可能是完整 URL，data.image 可能是 base64，比较需谨慎
+                // 简单起见，只要 data 有值就调 update，update 内部有 diff check
+                if (window.UiManager) {
+                    window.UiManager.updateContextPanel(data.image, data.text);
+                }
+            } catch (e) {
+                console.error("Context Data Parse Error", e);
+            }
+        }
+    }, options);
+}
+
+function observeMessageIntersection(element, contextData) {
+    if (!messageObserver) setupScrollObserver();
+    // 兼容逻辑：如果传了 contextData，更新 dataset
+    if (contextData) {
+        element.dataset.contextData = JSON.stringify(contextData);
+    }
+    if (element.dataset.contextData) {
+        messageObserver.observe(element);
+    }
+}
+
+// 13.3 交互逻辑 (Drag & Event Binding)
+// 绑定看板事件
+document.addEventListener('DOMContentLoaded', () => {
+    const toggleBtn = document.getElementById('context-toggle-btn');
+    const panel = document.getElementById('context-panel');
+    const contextHeader = document.getElementById('context-header');
+
+    // Define toggle function in shared scope to avoid ReferenceError
+    const toggleMiniMode = () => {
+        if (!panel) return;
+        panel.classList.toggle('mini');
+        if (panel.classList.contains('mini')) {
+            // Save size before mini
+            panel.dataset.prevWidth = panel.style.width;
+            panel.dataset.prevHeight = panel.style.height;
+            showToast('已切换为小图标模式', 'info');
+        } else {
+            // Restore size
+            if (panel.dataset.prevWidth) panel.style.width = panel.dataset.prevWidth;
+            if (panel.dataset.prevHeight) panel.style.height = panel.dataset.prevHeight;
+        }
+    };
+
+    if (toggleBtn && panel) {
+        // Define toggle function first to avoid ReferenceError
+        // toggleMiniMode definition moved to parent scope
+
+        const toggleFunc = () => {
+            // Use toggleMiniMode for consistent 'collapse' behavior
+            toggleMiniMode();
+        };
+        toggleBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            toggleFunc();
+        });
+
+        const lockBtn = document.getElementById('context-lock-btn');
+        if (lockBtn) {
+            lockBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                // 切换锁定状态
+                isManualContextSwitch = !isManualContextSwitch;
+
+                const icon = lockBtn.querySelector('i'); // 或者 svg
+                if (isManualContextSwitch) {
+                    lockBtn.style.color = 'var(--accent-color)';
+                    lockBtn.innerHTML = '<i data-lucide="lock"></i>';
+                    showToast('看板已锁定', 'info');
+                } else {
+                    lockBtn.style.color = '';
+                    lockBtn.innerHTML = '<i data-lucide="unlock"></i>';
+                    showToast('看板已解锁', 'info');
+                }
+                if (window.lucide) window.lucide.createIcons();
+            });
+        }
+    }
+
+    // 桌面端：拖拽逻辑 (Floating Widget)
+    if (panel && contextHeader) {
+        let isDragging = false;
+        let startX, startY, initialLeft, initialTop;
+
+        const dragStart = (e) => {
+            // 允许移动端拖拽
+
+            // 检查点击目标是否在 header 内，且不是按钮
+            const isHeader = e.target.closest('.context-header');
+            const isButton = e.target.closest('button') || e.target.closest('.context-toggle-btn');
+
+            if (!isHeader || isButton) return;
+
+            isDragging = true;
+
+            if (e.type === 'mousedown') {
+                startX = e.clientX;
+                startY = e.clientY;
+            } else if (e.type === 'touchstart') {
+                startX = e.touches[0].clientX;
+                startY = e.touches[0].clientY;
+            }
+
+            // 获取当前位置（如果没有设置 left/top，默认为 CSS 中的值）
+            const rect = panel.getBoundingClientRect();
+            // 注意：getBoundingClientRect 返回的是相对于视口的坐标
+            initialLeft = rect.left;
+            initialTop = rect.top;
+
+            // 切换为 JS 控制定位
+            // 关键：必须清除 bottom/right，否则 top/left 可能无效 (取决于 CSS 优先级)
+            panel.style.position = 'fixed';
+            panel.style.right = 'auto';
+            panel.style.bottom = 'auto'; // 清除 CSS 中的 bottom: 100px
+
+            panel.style.left = `${initialLeft}px`;
+            panel.style.top = `${initialTop}px`;
+
+            panel.style.transition = 'none'; // 拖拽时移除过渡
+            panel.style.cursor = 'grabbing';
+            // 阻止默认滚动
+            if (e.type === 'touchstart') document.body.style.overflow = 'hidden';
+        };
+
+        const dragEnd = (e) => {
+            if (!isDragging) return;
+
+            // 判断是否是点击（位移很小）
+            const clientX = e.changedTouches ? e.changedTouches[0].clientX : e.clientX;
+            const clientY = e.changedTouches ? e.changedTouches[0].clientY : e.clientY;
+            const dist = Math.sqrt(Math.pow(clientX - startX, 2) + Math.pow(clientY - startY, 2));
+
+            isDragging = false;
+            panel.style.transition = 'all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.3s'; // 恢复过渡
+            panel.style.cursor = 'default';
+            document.body.style.overflow = ''; // 恢复滚动
+
+            // 如果位移小于 5px，视为点击，触发切换
+            if (dist < 5 && (e.target === contextHeader || e.target.classList.contains('context-title') || e.target.closest('.context-title'))) {
+                // Remove single click toggle, use double click or button
+            }
+
+            // Save Position Preference
+            localStorage.setItem('mathSolver_panelPos', JSON.stringify({
+                left: panel.offsetLeft,
+                top: panel.offsetTop
+            }));
+        };
+
+        // Allow expanding from Mini Mode by simple click (since button is hidden)
+        // But do NOT allow collapsing by click (user requested button only)
+        // Allow expanding from Mini Mode by DOUBLE CLICK (User Request)
+        contextHeader.addEventListener('dblclick', (e) => {
+            if (panel.classList.contains('mini')) {
+                toggleMiniMode();
+            }
+        });
+
+        // Prevent single click from doing anything in Mini Mode (it might conflict with drag, but drag is handled separately)
+        // Note: dragEnd logic for toggle was already disabled/empty in lines 787-789.
+
+        // toggleMiniMode definition moved to parent scope
+
+        // === Resize Logic ===
+        const resizers = panel.querySelectorAll('.resizer');
+        let currentResizer;
+
+        for (let resizer of resizers) {
+            resizer.addEventListener('mousedown', initResize);
+            resizer.addEventListener('touchstart', initResize, { passive: false });
+        }
+
+        function initResize(e) {
+            e.stopPropagation(); // Critical: Stop drag from starting
+            e.preventDefault(); // Prevent text selection
+            currentResizer = e.target;
+
+            window.addEventListener('mousemove', resize);
+            window.addEventListener('mouseup', stopResize);
+            window.addEventListener('touchmove', resize, { passive: false });
+            window.addEventListener('touchend', stopResize);
+
+            // Disable transition during resize for performance
+            panel.style.transition = 'none';
+
+            const rect = panel.getBoundingClientRect();
+            panel.dataset.startX = e.clientX || e.touches[0].clientX;
+            panel.dataset.startY = e.clientY || e.touches[0].clientY;
+            panel.dataset.startWidth = rect.width;
+            panel.dataset.startHeight = rect.height;
+            panel.dataset.startLeft = rect.left;
+            panel.dataset.startTop = rect.top;
+        }
+
+        function resize(e) {
+            const clientX = e.clientX || e.touches[0].clientX;
+            const clientY = e.clientY || e.touches[0].clientY;
+
+            const dx = clientX - parseFloat(panel.dataset.startX);
+            const dy = clientY - parseFloat(panel.dataset.startY);
+
+            const startWidth = parseFloat(panel.dataset.startWidth);
+            const startHeight = parseFloat(panel.dataset.startHeight);
+            const startLeft = parseFloat(panel.dataset.startLeft);
+            const startTop = parseFloat(panel.dataset.startTop);
+
+            // Right / Bottom resizing
+            if (currentResizer.classList.contains('resizer-r') || currentResizer.classList.contains('resizer-rb')) {
+                panel.style.width = Math.max(300, startWidth + dx) + 'px';
+            }
+            if (currentResizer.classList.contains('resizer-b') || currentResizer.classList.contains('resizer-rb') || currentResizer.classList.contains('resizer-lb')) {
+                panel.style.height = Math.max(200, startHeight + dy) + 'px';
+            }
+
+            // Left resizing (Requires moving left AND changing width)
+            if (currentResizer.classList.contains('resizer-l') || currentResizer.classList.contains('resizer-lb')) {
+                const newWidth = Math.max(300, startWidth - dx);
+                // Only update left if width actually changed (respected constraints)
+                if (newWidth > 300) {
+                    panel.style.left = (startLeft + dx) + 'px';
+                    panel.style.width = newWidth + 'px';
+                    // Force fixed positioning if not already
+                    panel.style.position = 'fixed';
+                    panel.style.right = 'auto'; // Clear right if it was set
+                }
+            }
+            // Top resizing (Requires moving top AND changing height)
+            if (currentResizer.classList.contains('resizer-t') || currentResizer.classList.contains('resizer-tr') || currentResizer.classList.contains('resizer-tl')) {
+                const newHeight = Math.max(200, startHeight - dy);
+                if (newHeight > 200) {
+                    panel.style.top = (startTop + dy) + 'px';
+                    panel.style.height = newHeight + 'px';
+                    panel.style.position = 'fixed';
+                    panel.style.bottom = 'auto';
+                }
+            }
+
+            // Width adjustments for corners
+            if (currentResizer.classList.contains('resizer-tr')) {
+                panel.style.width = Math.max(300, startWidth + dx) + 'px';
+            }
+            if (currentResizer.classList.contains('resizer-tl')) {
+                const newWidth = Math.max(300, startWidth - dx);
+                if (newWidth > 300) {
+                    panel.style.left = (startLeft + dx) + 'px';
+                    panel.style.width = newWidth + 'px';
+                    panel.style.position = 'fixed';
+                    panel.style.right = 'auto';
+                }
+            }
+        }
+
+        function stopResize() {
+            window.removeEventListener('mousemove', resize);
+            window.removeEventListener('mouseup', stopResize);
+            window.removeEventListener('touchmove', resize);
+            window.removeEventListener('touchend', stopResize);
+
+            panel.style.transition = 'all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1)'; // Restore smooth transition
+
+            // Save Size Preference
+            localStorage.setItem('mathSolver_panelSize', JSON.stringify({
+                width: panel.style.width,
+                height: panel.style.height
+            }));
+
+            // Also save position as left resizing changes it
+            localStorage.setItem('mathSolver_panelPos', JSON.stringify({
+                left: panel.offsetLeft,
+                top: panel.offsetTop
+            }));
+        }
+        const drag = (e) => {
+            if (!isDragging) return;
+
+            let clientX, clientY;
+            if (e.type === 'mousemove') {
+                e.preventDefault();
+                clientX = e.clientX;
+                clientY = e.clientY;
+            } else if (e.type === 'touchmove') {
+                e.preventDefault();
+                clientX = e.touches[0].clientX;
+                clientY = e.touches[0].clientY;
+            }
+
+            const dx = clientX - startX;
+            const dy = clientY - startY;
+
+            panel.style.left = `${initialLeft + dx}px`;
+            panel.style.top = `${initialTop + dy}px`;
+        };
+
+        // Restore Position & Size on Load
+        const savedPos = safeJsonParse(localStorage.getItem('mathSolver_panelPos'));
+        if (savedPos) {
+            panel.style.left = `${savedPos.left}px`;
+            panel.style.top = `${savedPos.top}px`;
+        }
+
+        const savedSize = safeJsonParse(localStorage.getItem('mathSolver_panelSize'));
+        if (savedSize) {
+            panel.style.width = savedSize.width;
+            panel.style.height = savedSize.height;
+        }
+
+        // === Smart Opacity Logic REMOVED as per user request ===
+        // The panel will now remain fully opaque unless manually toggled.
+
+        if (window.matchMedia("(min-width: 769px)").matches) {
+            document.addEventListener('mousemove', drag);
+            document.addEventListener('touchmove', drag, { passive: false });
+            document.addEventListener('mouseup', dragEnd);
+            document.addEventListener('touchend', dragEnd);
+            if (contextHeader) {
+                contextHeader.addEventListener('mousedown', dragStart);
+                contextHeader.addEventListener('touchstart', dragStart, { passive: false });
+            }
+        }
+    }
+});
+
+// Helper
+// Helper `tryParseJSON` removed. Use global `safeJsonParse` (line 33) or move to utils.
+
+// ==========================================
+// 移动端 FAB + 底部抽屉逻辑
+// ==========================================
+// ==========================================
+// 移动端 FAB + 底部抽屉逻辑
+// ==========================================
+const fab = document.getElementById('mobile-context-fab');
+// Duplicate mobile context logic removed.
+// See lines ~909 for the active implementation.
 
 // ==========================================
 // 8. TTS 朗读
@@ -491,7 +983,13 @@ function displayMessage(role, text, imageUrl = null, shouldSave = false) {
 function toggleTTS() {
     isTTSEnabled = !isTTSEnabled;
     const label = document.getElementById('tts-label');
-    if (label) label.textContent = isTTSEnabled ? "🔊 朗读: 开" : "🔇 朗读: 关";
+    if (label) {
+        // 更新图标和文字
+        label.innerHTML = isTTSEnabled
+            ? `<i data-lucide="volume-2" style="width: 16px;"></i> 朗读: 开`
+            : `<i data-lucide="volume-x" style="width: 16px;"></i> 朗读: 关`;
+        if (window.lucide) window.lucide.createIcons();
+    }
     if (!isTTSEnabled) stopSpeaking();
     const dropdown = document.getElementById('dropdownMenu');
     if (dropdown) dropdown.classList.remove('show');
@@ -590,21 +1088,20 @@ async function startSolving() {
     loading.style.display = 'block';
 
     try {
-        const response = await fetch(API_CONFIG.mathSolver.url, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                imageBase64: croppedImageData
-            })
-        });
+        let result;
 
-        if (!response.ok) {
-            throw new Error(`服务器错误: ${response.status}`);
+        // 优先使用模块化的 ApiClient
+        if (window.ApiClient) {
+            const formData = new FormData();
+            // Convert base64 to blob
+            const response = await fetch(croppedImageData);
+            const blob = await response.blob();
+            formData.append('image', blob, 'capture.jpg');
+
+            result = await window.ApiClient.analyze(formData);
+        } else {
+            throw new Error("ApiClient module not loaded");
         }
-
-        const result = await response.json();
 
         loading.style.display = 'none';
 
@@ -626,13 +1123,40 @@ async function startSolving() {
             aiContent += `## 💡 解答过程\n\n${result.data.solution}`;
         }
 
-        // 不再传递图片参数，因为已嵌入内容中
-        displayMessage('bot', aiContent, null, true);
+        // 构造看板数据
+        let panelImage = result.data.diagramBase64 || null;
+        let panelText = result.data.extractedText || "（暂无文字识别结果）";
+
+        // 全能兜底方案：
+        // 如果 OCR 失败 (包含错误关键词) 或者 识别内容极少 (可能为空)，且没有生成 AI 图形
+        // 则强制使用用户上传的原图 (croppedImageData) 作为看板图片，确保用户至少能看到题目原貌。
+        const isOCRFailed = panelText.includes('OCR 失败') || panelText.includes('无法识别') || panelText.trim().length < 5;
+
+        if (isOCRFailed && !panelImage) {
+            console.warn("OCR 似乎失败，启用原图兜底模式");
+            panelImage = croppedImageData;
+            if (panelText.includes('OCR 失败')) {
+                panelText += "\n\n> ⚠️ **自动回退模式**：由于文字识别遇到网络问题，已为您显示原始截图。";
+            }
+        }
+
+        const contextData = {
+            image: panelImage,
+            text: panelText,
+            // Enrich for Long-term Context Anchoring
+            extractedText: result.data.extractedText || "",
+            imageDescription: result.data.imageDescription || "",
+            solution: result.data.solution || ""
+        };
+
+        // 不再传递图片参数，因为已嵌入内容中，但传递 contextData 用于悬浮窗
+        displayMessage('bot', aiContent, null, true, contextData);
         speakText(aiContent);
 
     } catch (error) {
         loading.style.display = 'none';
         displayMessage('bot', `❌ **解题失败**: ${error.message}\n\n请检查网络连接后重试。`, null, true);
+        showToast('解题失败，请查看消息', 'error');
     } finally {
         croppedImageData = null;
     }
@@ -753,6 +1277,30 @@ async function sendTextMessage() {
     const currentSession = chatSessions.find(s => s.id === currentSessionId);
     const historyMessages = currentSession ? currentSession.messages : [];
 
+    // --- Context Anchoring Strategy ---
+    // 1. Find the latest "Problem Context" (contextData) from history
+    //    This ensures we never forget the original problem, even if it's 100 turns ago.
+    let anchoredContext = null;
+    let anchoredPrompt = "";
+
+    // Search backwards for the most recent bot message that has contextData (Problem Solution)
+    for (let i = historyMessages.length - 1; i >= 0; i--) {
+        if (historyMessages[i].role === 'bot' && historyMessages[i].contextData) {
+            anchoredContext = historyMessages[i].contextData;
+            break;
+        }
+    }
+
+    if (anchoredContext) {
+        anchoredPrompt = `
+【当前题目上下文 (Anchored Context)】
+题目文字: ${anchoredContext.extractedText || anchoredContext.text}
+视觉描述: ${anchoredContext.imageDescription || "无"}
+初始解答: (已提供，仅供参考)
+`;
+        console.log("Context Anchored:", anchoredContext.extractedText?.substring(0, 20) + "...");
+    }
+
     // 构建 API 消息格式
     const apiMessages = [
         {
@@ -763,18 +1311,31 @@ async function sendTextMessage() {
 3. 要求换一种方法解题
 4. 询问相关知识点
 
+${anchoredPrompt}
+
 请用清晰、详细的方式回答。所有数学公式请使用 LaTeX 格式：
 - 独立公式用 $$...$$ 包裹
 - 行内公式用 $...$ 包裹`
         }
     ];
 
-    // 添加历史消息
-    historyMessages.forEach(msg => {
+    // 添加历史消息 (Feature: Context Management)
+    // 1. 过滤掉 Base64 图片 (防止 Token 爆炸)
+    // 2. 滑动窗口：保留最近 50 条 (25轮)，由于有了 Anchoring，这足够且安全
+    const MAX_HISTORY = 50;
+    const recentMessages = historyMessages.slice(-MAX_HISTORY);
+
+    recentMessages.forEach(msg => {
         if (msg.text) {
+            // Remove base64 images syntax: ![...](data:image/...)
+            let safeContent = msg.text.replace(/!\[.*?\]\(data:image\/.*?\)/g, '[图片]');
+
+            // Also remove any standalone long base64 strings just in case
+            safeContent = safeContent.replace(/[a-zA-Z0-9+/=]{500,}/g, '[Large Data Removed]');
+
             apiMessages.push({
                 role: msg.role === 'bot' ? 'assistant' : 'user',
-                content: msg.text
+                content: safeContent
             });
         }
     });
@@ -783,24 +1344,10 @@ async function sendTextMessage() {
     loading.style.display = 'block';
 
     try {
-        const response = await fetch(API_CONFIG.chat.url, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                messages: apiMessages,
-                model: 'deepseek-chat',
-                stream: false,
-                temperature: 0.7
-            })
-        });
+        if (!window.ApiClient) throw new Error("ApiClient module not loaded");
 
-        if (!response.ok) {
-            throw new Error(`服务器错误: ${response.status}`);
-        }
+        const result = await window.ApiClient.chat(apiMessages);
 
-        const result = await response.json();
         loading.style.display = 'none';
 
         if (result.error) {
@@ -821,4 +1368,5 @@ async function sendTextMessage() {
         displayMessage('bot', `❌ **请求失败**: ${error.message}\n\n请检查网络连接后重试。`, null, true);
     }
 }
+
 
