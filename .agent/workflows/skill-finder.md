@@ -1,5 +1,5 @@
 ---
-description: Search for new AI skills using the 'find-skills' tool.
+description: 使用“find-skills”工具搜索新的 AI 技能.
 ---
 
 # Skill Finder

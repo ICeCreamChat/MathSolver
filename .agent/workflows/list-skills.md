@@ -1,5 +1,5 @@
 ---
-description: List all available agent skills installed in the global workspace.
+description: 列出全局工作区中安装的所有可用代理技能.
 ---
 
 # List Available Skills (Global)

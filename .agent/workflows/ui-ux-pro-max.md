@@ -1,5 +1,5 @@
 ---
-description: Generate a professional design system using UI UX Pro Max skill.
+description: 利用 UI UX Pro Max 技能生成一套专业的设计系统.
 ---
 
 # UI UX Pro Max Workflow
