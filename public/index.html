@@ -1,0 +1,262 @@
+<!--
+ * MathSolver
+ * Copyright (c) 2026 ICeCreamChat
+ * Licensed under the MIT License.
+-->
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content">
+
+    <meta name="theme-color" content="#050b14">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+
+    <title>MathSolver - AI 数学解题助手</title>
+    <meta name="description" content="上传数学题图片，AI 自动识别并给出详细解答">
+
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+        }
+    </style>
+
+    <link rel="stylesheet" href="style.css?v=8">
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
+
+    <!-- KaTeX -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+
+    <!-- Cropper.js -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/cropperjs@1.6.1/dist/cropper.min.css">
+
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <script defer src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
+
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js"
+            }
+        }
+    </script>
+</head>
+
+<body>
+    <!-- 背景动画容器 -->
+    <div id="math-canvas-container"></div>
+
+    <div class="glass-wrapper">
+        <button id="mobile-menu-btn" class="icon-btn" aria-label="打开菜单"><i data-lucide="menu"></i></button>
+
+        <div class="app-layout">
+            <!-- 侧边栏 -->
+            <aside class="sidebar" id="sidebar">
+                <div class="sidebar-header">
+                    <button id="new-chat-btn" class="new-chat-btn">
+                        <i data-lucide="plus" style="width: 18px; height: 18px;"></i> 新建对话
+                    </button>
+                </div>
+                <div class="history-list" id="history-list">
+                    <!-- 历史记录将动态生成 -->
+                </div>
+                <div class="sidebar-footer">
+                    <div class="model-badge" id="model-display">ICeCream Core 1.0</div>
+                </div>
+            </aside>
+
+            <!-- 主区域 -->
+            <main class="main-content">
+                <div class="header-bar">
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <span class="status-dot"></span> ICeCream MathSolver
+                    </div>
+
+                    <div class="glass-snowflake" id="theme-toggle" title="切换主题">
+                        <i data-lucide="sun" class="icon-svg icon-snow"></i>
+                        <i data-lucide="moon" class="icon-svg icon-cream"></i>
+                    </div>
+                </div>
+
+                <!-- 消息列表 -->
+                <div class="messages" id="messages">
+                    <!-- 欢迎消息会由 script.js 动态生成 -->
+                </div>
+
+                <!-- Loading 状态 -->
+                <div id="loading" class="loading" style="display: none;">
+                    <span>[MathSolver] AI 正在分析题目</span>
+                </div>
+
+                <!-- 输入区域 -->
+                <div class="input-area">
+                    <div class="input-container">
+                        <button id="upload-btn" class="icon-btn upload-btn" title="上传图片" aria-label="上传图片"><i
+                                data-lucide="paperclip"></i></button>
+
+                        <div class="input-wrapper">
+                            <input id="chat-input" type="text" placeholder="输入追问或上传图片..." autocomplete="off"
+                                aria-label="输入框" />
+                            <div id="ghost-input"></div>
+                        </div>
+
+                        <button id="camera-btn" class="icon-btn camera-btn" title="拍照" aria-label="拍照"><i
+                                data-lucide="camera"></i></button>
+                        <button id="send-btn" class="icon-btn send-btn" title="发送" aria-label="发送消息"><i
+                                data-lucide="send"></i></button>
+                    </div>
+
+                    <div class="toolbar">
+                        <button class="icon-btn more-btn" id="more-btn" aria-label="更多选项"><i
+                                data-lucide="settings"></i></button>
+                        <div class="dropdown-content" id="dropdownMenu">
+                            <div class="dropdown-item" id="btn-tts">
+                                <span id="tts-label" style="display: flex; align-items: center; gap: 8px;">
+                                    <i data-lucide="volume-x" style="width: 16px;"></i> 朗读: 关
+                                </span>
+                            </div>
+
+                            <div class="dropdown-item" id="btn-clear"
+                                style="color:#ff5252; display: flex; align-items: center; gap: 8px;">
+                                <i data-lucide="trash-2" style="width: 16px;"></i> 清空对话
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <div id="sidebar-overlay" class="overlay"></div>
+
+    <!-- 悬浮题目看板 (Context Panel) -->
+    <div id="context-panel" class="context-panel hidden">
+        <div class="context-header" id="context-header">
+            <div class="context-title">
+                <i data-lucide="clipboard-list"></i> <span>题目看板</span>
+            </div>
+            <div class="context-controls">
+                <button id="context-lock-btn" class="context-toggle-btn" title="锁定/解锁看板内容">
+                    <i data-lucide="unlock"></i>
+                </button>
+                <button id="context-toggle-btn" class="context-toggle-btn" title="收起/展开">
+                    <i data-lucide="chevron-left"></i>
+                </button>
+            </div>
+        </div>
+        <div class="context-body">
+            <div class="context-image-container">
+                <img id="context-image" src="" alt="题目图片" onclick="openImageLightbox(this.src)">
+            </div>
+            <div class="context-text-container" id="context-text">
+                <!-- 题目文字 -->
+            </div>
+        </div>
+
+        <!-- Resize Handles -->
+        <div class="resizer resizer-r"></div>
+        <div class="resizer resizer-b"></div>
+        <div class="resizer resizer-rb"></div>
+        <div class="resizer resizer-l"></div>
+        <div class="resizer resizer-lb"></div>
+        <div class="resizer resizer-t"></div>
+        <div class="resizer resizer-tr"></div>
+        <div class="resizer resizer-tl"></div>
+    </div>
+
+    <!-- 移动端 FAB -->
+    <button id="mobile-context-fab" class="mobile-context-fab">
+        <i data-lucide="clipboard-list"></i>
+    </button>
+
+    <!-- 移动端 Modal -->
+    <div id="mobile-context-modal" class="mobile-context-modal">
+        <div class="mobile-modal-overlay"></div>
+        <div class="mobile-modal-content">
+            <div class="mobile-modal-header">
+                <h3>当前题目</h3>
+                <button id="mobile-modal-close"><i data-lucide="x"></i></button>
+            </div>
+            <div class="mobile-modal-body">
+                <img id="mobile-context-image" src="" alt="题目" onclick="openImageLightbox(this.src)">
+                <div id="mobile-context-text"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 裁剪模态框 -->
+    <div class="crop-modal" id="crop-modal">
+        <div class="crop-header">
+            <span class="crop-title">裁剪图片</span>
+            <button class="icon-btn" id="btn-crop-cancel"><i data-lucide="x"></i></button>
+        </div>
+        <div class="crop-container">
+            <img id="crop-image" src="">
+        </div>
+        <div class="crop-footer">
+            <button class="btn btn-secondary" id="btn-crop-reset">重置</button>
+            <button class="btn btn-primary" id="btn-crop-confirm">确认裁剪</button>
+        </div>
+    </div>
+
+    <!-- 确认模态框 -->
+    <div class="modal-overlay" id="confirm-modal">
+        <div class="modal-content">
+            <h3 class="modal-title" id="confirm-title">确认操作</h3>
+            <p class="modal-message" id="confirm-message">确定要执行此操作吗？</p>
+            <div class="modal-actions">
+                <button class="btn btn-secondary" id="btn-confirm-cancel">取消</button>
+                <button class="btn btn-danger" id="btn-confirm-ok">确定</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast 容器 -->
+    <div id="toast-container" class="toast-container"></div>
+
+    <!-- 隐藏的文件输入 -->
+    <input type="file" id="file-input" accept="image/*" style="display: none;">
+    <input type="file" id="camera-input" accept="image/*" capture="environment" style="display: none;">
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/cropperjs@1.6.1/dist/cropper.min.js"></script>
+    <script>
+        // 初始化 Lucide 图标 (静态内容)
+        window.addEventListener('load', () => {
+            if (window.lucide) {
+                window.lucide.createIcons();
+            }
+        });
+    </script>
+    <!-- Core Modules (Dependency Order) -->
+    <script src="js/constants.js?v=4"></script>
+    <script src="js/state_manager.js?v=4"></script>
+    <script src="js/math_renderer.js?v=4"></script>
+    <script src="js/api_client.js?v=4"></script>
+    <script src="js/ui_manager.js?v=4"></script>
+    <script src="js/theme_manager.js?v=4"></script>
+    <script src="js/cursor_effects.js?v=4"></script>
+    <script src="js/tts_handler.js?v=4"></script>
+    <script src="js/chat_system.js?v=4"></script>
+    <script src="js/cropper_handler.js?v=4"></script>
+    <script src="js/context_panel.js?v=5"></script>
+    <script src="js/particle_engine.js?v=4" type="module"></script>
+
+    <!-- Main Entry Point -->
+    <script type="module" src="script.js?v=7"></script>
+</body>
+
+</html>
